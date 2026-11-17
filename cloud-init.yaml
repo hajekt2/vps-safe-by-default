@@ -1,0 +1,36 @@
+#cloud-config
+# First boot only. This creates a login path and installs the firewall tooling.
+# It deliberately does not close anything: hardening happens later, over the
+# temporary public SSH session, after Tailscale is proven.
+
+ssh_pwauth: false
+package_update: true
+
+packages:
+  - curl
+  - ca-certificates
+  - ufw
+  - openssh-server
+
+users:
+  - default
+  - name: deploy
+    groups: [sudo]
+    shell: /bin/bash
+    lock_passwd: true
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    ssh_authorized_keys:
+      # Replace with your key. Keep password auth off: this port is public
+      # until harden.sh closes it.
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... replace-me operator@laptop
+
+write_files:
+  - path: /etc/motd.d/99-closed-by-default
+    permissions: "0644"
+    content: |
+      This host is not closed yet. Run scripts/harden.sh, then scripts/verify.sh.
+
+runcmd:
+  - [systemctl, enable, --now, ssh]
+  # Nothing else. Enrollment is interactive or key-driven through harden.sh,
+  # so the ordering stays visible and a failed enrollment cannot lock you out.

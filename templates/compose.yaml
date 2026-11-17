@@ -1,0 +1,27 @@
+# Containers on a closed host. The only public listener is Caddy on 80/443.
+#
+# Bind published ports to 127.0.0.1. Docker inserts its own DNAT rules ahead of
+# ufw, so "8080:80" is reachable from the internet even with
+# "ufw default deny incoming".
+
+services:
+  app:
+    image: ghcr.io/you/app:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    # Do not use network_mode: host; it skips both the bind address and the
+    # per-container network boundary.
+    environment:
+      TZ: Europe/Oslo
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    network_mode: host          # Caddy owns the host's 80/443 directly
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/caddy/data:/srv/caddy/data
+      - /srv/caddy/logs:/srv/caddy/logs
+    depends_on:
+      - app

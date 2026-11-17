@@ -1,0 +1,30 @@
+# Origin Caddy behind the Cloudflare proxy.
+#
+# ufw admits 80/443 only from Cloudflare's ranges, so the only client that can
+# reach this listener is the Cloudflare edge.
+#
+# ACME HTTP-01 works while the DNS record is proxied: the CA validation request
+# travels through Cloudflare and arrives from a Cloudflare address. If you
+# grey-cloud the record, switch to DNS-01 or reopen the CA's ranges.
+
+{
+	email you@example.com
+	# Certificates live on the attached volume, not the boot disk.
+	storage file /srv/caddy/data
+}
+
+example.com {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8080
+
+	# Caddy replaces client-supplied X-Forwarded-* headers. If you log or rate
+	# limit by client IP, read CF-Connecting-IP and set trusted_proxies to
+	# Cloudflare's ranges, or the header is spoofable from inside the tailnet.
+	log {
+		output file /srv/caddy/logs/access.log {
+			roll_size 50MiB
+			roll_keep 5
+		}
+		format console
+	}
+}

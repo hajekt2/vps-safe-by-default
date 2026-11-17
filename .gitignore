@@ -1,0 +1,4 @@
+.plan-work/
+*.tfstate
+*.tfstate.backup
+.DS_Store
